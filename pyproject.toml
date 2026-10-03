@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dagcheck-plan"
+version = "0.1.0"
+description = "Validate task DAGs, explain critical paths, and simulate bounded worker schedules without executing jobs"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "loufengzh"}]
+dependencies = []
+classifiers = ["Programming Language :: Python :: 3", "Operating System :: OS Independent"]
+
+[project.scripts]
+dagcheck-plan = "dagcheck_plan.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["dagcheck_plan*"]

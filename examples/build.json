@@ -1,0 +1,8 @@
+{
+  "tasks": [
+    {"id": "fetch", "duration": 2},
+    {"id": "lint", "duration": 3, "needs": ["fetch"]},
+    {"id": "test", "duration": 5, "needs": ["fetch"]},
+    {"id": "package", "duration": 1, "needs": ["lint", "test"]}
+  ]
+}

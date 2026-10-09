@@ -66,7 +66,9 @@ JSON reports go to stdout; diagnostics go to stderr.
 Internally durations are exact rational values of the parsed number's decimal
 representation, so `0.1 + 0.2` meets a `0.3` budget. JSON parsing first uses Python
 float precision for non-integer input, so arbitrary-precision decimal input is not
-preserved. Non-integral report values are rounded to finite Python floats;
+preserved. Nonzero JSON numbers and CLI budgets that underflow to zero (for example,
+`1e-400` or `-1e-400`) are rejected as invalid input instead of becoming zero.
+Exact zero and representable subnormal values remain accepted. Non-integral report values are rounded to finite Python floats;
 budget comparisons occur before that output rounding. Integer outputs are exact.
 
 ## Library API

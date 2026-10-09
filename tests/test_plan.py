@@ -4,6 +4,7 @@ import itertools
 import json
 import random
 import unittest
+from unittest.mock import patch
 from dagcheck_plan import PlanError, loads, plan
 from dagcheck_plan.__main__ import main
 
@@ -136,6 +137,19 @@ class ValidationTests(unittest.TestCase):
         with self.assertRaises(PlanError):
             plan({"tasks": [{"id": str(i), "duration": 0} for i in range(10_001)]})
 
+    def test_json_float_underflow(self):
+        for token in ("1e-400", "-1e-400", "2e-324", "-2e-324"):
+            with self.subTest(token=token), self.assertRaisesRegex(PlanError, "underflows"):
+                loads('{"tasks":[{"id":"a","duration":' + token + '}]}')
+        for token in ("0e-400", "-0e-400", "0.000e-999999999999"):
+            with self.subTest(token=token):
+                p = plan(loads('{"tasks":[{"id":"a","duration":' + token + '}]}'), budget=0)
+                self.assertEqual(p["heuristic_makespan"], 0)
+                self.assertTrue(p["within_budget"])
+        p = plan(loads('{"tasks":[{"id":"a","duration":5e-324}]}'), budget=0)
+        self.assertGreater(p["heuristic_makespan"], 0)
+        self.assertFalse(p["within_budget"])
+
     def test_strict_json(self):
         for raw in ['{"tasks": [], "tasks": []}', '{"tasks":[NaN]}', '[', '{"tasks":[Infinity]}']:
             with self.assertRaises(PlanError):
@@ -150,6 +164,29 @@ class CliTests(unittest.TestCase):
                 actual = main(["analyze", "examples/build.json", "--workers", "2", "--budget", str(budget), "--format", "json"])
             self.assertEqual(actual, code)
             self.assertEqual(json.loads(out.getvalue())["heuristic_makespan"], 8)
+
+    def test_json_underflow_cli(self):
+        for token in ("1e-400", "-1e-400"):
+            out, err = io.StringIO(), io.StringIO()
+            raw = '{"tasks":[{"id":"a","duration":' + token + '}]}'
+            with self.subTest(token=token), patch("sys.stdin", io.StringIO(raw)), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = main(["analyze", "-", "--budget", "0", "--format", "json"])
+            self.assertEqual(code, 2)
+            self.assertEqual(out.getvalue(), "")
+            self.assertIn("underflows", err.getvalue())
+
+    def test_budget_underflow(self):
+        for token in ("1e-400", "-1e-400", "2e-324", "-2e-324", "١e-٤٠٠"):
+            out, err = io.StringIO(), io.StringIO()
+            with self.subTest(token=token), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as exc:
+                    main(["analyze", "examples/build.json", "--budget=" + token])
+            self.assertEqual(exc.exception.code, 2)
+            self.assertEqual(out.getvalue(), "")
+            self.assertIn("underflows", err.getvalue())
+        for token in ("0e-400", "-0e-400", "5e-324"):
+            with self.subTest(token=token), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(main(["analyze", "examples/build.json", "--budget=" + token]), 1)
 
     def test_missing_file(self):
         with contextlib.redirect_stderr(io.StringIO()):

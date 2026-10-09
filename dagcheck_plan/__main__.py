@@ -3,7 +3,14 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from .core import MAX_INPUT_CHARS, PlanError, loads, plan
+from .core import MAX_INPUT_CHARS, PlanError, _parse_float, loads, plan
+
+
+def _budget(token):
+    try:
+        return _parse_float(token)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
 def main(argv=None):
@@ -11,7 +18,7 @@ def main(argv=None):
     parser.add_argument("command", choices=["analyze"])
     parser.add_argument("graph", help="JSON graph path, or - for stdin")
     parser.add_argument("--workers", type=int, default=1, help="positive worker count (default: 1)")
-    parser.add_argument("--budget", type=float, help="inclusive limit on simulated makespan")
+    parser.add_argument("--budget", type=_budget, help="inclusive limit on simulated makespan")
     parser.add_argument("--format", choices=["json", "text"], default="text")
     args = parser.parse_args(argv)
     try:

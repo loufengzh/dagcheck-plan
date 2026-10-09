@@ -54,6 +54,15 @@ def _pairs(pairs):
     return result
 
 
+def _parse_float(token):
+    """Keep float precision, but never silently turn a nonzero input into zero."""
+    value = float(token)
+    mantissa = token.lower().split("e", 1)[0]
+    if value == 0 and any(unicodedata.decimal(digit, 0) for digit in mantissa):
+        raise PlanError("nonzero number underflows the supported float range")
+    return value
+
+
 def loads(text):
     """Parse strict JSON (reject duplicate keys and NaN/Infinity)."""
     if not isinstance(text, str) or len(text) > MAX_INPUT_CHARS:
@@ -61,7 +70,8 @@ def loads(text):
     def constant(value):
         raise PlanError(f"invalid JSON numeric constant: {value}")
     try:
-        return json.loads(text, object_pairs_hook=_pairs, parse_constant=constant)
+        return json.loads(text, object_pairs_hook=_pairs, parse_constant=constant,
+                          parse_float=_parse_float)
     except (ValueError, RecursionError) as exc:
         raise PlanError(f"invalid JSON: {exc}") from exc
 

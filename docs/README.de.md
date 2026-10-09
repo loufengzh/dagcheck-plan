@@ -64,7 +64,9 @@ Parameter oder nicht lesbare Datei. Berichte gehen an stdout, Fehler an stderr.
 Intern werden rationale Zahlen aus der Dezimaldarstellung der bereits eingelesenen
 Werte verwendet: 0.1 + 0.2 erfüllt ein Budget von 0.3. Nichtganzzahliges JSON wird
 zunächst als Python float eingelesen; beliebige Dezimalpräzision bleibt daher nicht
-erhalten. Gebrochene Ausgaben werden auf endliche floats gerundet, ganzzahlige
+erhalten. Von null verschiedene JSON-Zahlen und CLI-Budgets, die durch Unterlauf
+zu null werden (etwa `1e-400` oder `-1e-400`), werden als ungültige Eingabe abgelehnt.
+Exakte Null und darstellbare subnormale Werte bleiben zulässig. Gebrochene Ausgaben werden auf endliche floats gerundet, ganzzahlige
 Ausgaben sind exakt. Budgetvergleiche erfolgen vor der Ausgaberundung.
 
 ## Bibliothek
